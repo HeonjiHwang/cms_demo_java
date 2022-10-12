@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pocketmemory.com.data.mapper.AuthorityManagementMapper">
+	
+	<insert id="insertAuthorityInfo" parameterType="hashmap">
+		INSERT INTO BO_AUTHORITY_INFO
+		(AUTHORITY_NAME, AUTHORITY_DESC)
+		VALUES(#{authority_name}, #{authority_desc});
+	</insert>
+	
+	<update id="updateAuthorityInfo" parameterType="hashmap">
+		UPDATE BO_AUTHORITY_INFO
+		SET AUTHORITY_NAME=#{authority_name}, AUTHORITY_DESC=#{authority_desc}
+		WHERE AUTHORITY_ID=#{authority_id};
+	</update>
+	
+	<delete id="deleteAuthorityInfo" parameterType="hashmap">
+		DELETE FROM BO_AUTHORITY_INFO WHERE AUTHORITY_ID = #{authority_id};
+	</delete>
+	
+	<update id="updateMenuAuthority" parameterType="hashmap">
+		UPDATE BO_MENU_AUTHORITY SET AUTHORITY = #{authority} WHERE SUB_MENU_CD = #{sub_menu_cd};
+	</update>
+</mapper>

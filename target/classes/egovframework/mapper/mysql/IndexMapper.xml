@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pocketmemory.com.data.mapper.IndexMapper">
+	
+	<select id="selectUserInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT CASE WHEN SHA2(#{user_pwd}, 256) = bui.USER_PWD THEN 1 ELSE 0 END AS IS_VALID, bui.IS_ENABLE,
+		bui.USER_CD, bui.USER_ID, bui.USER_NAME, bui.AUTHORITY_ID, bai.AUTHORITY_NAME, bui.EMAIL,
+		bui.LAST_LOGIN_IP, bui.LAST_LOGIN_TIME 
+		FROM BO_USER_INFO bui 
+		INNER JOIN BO_AUTHORITY_INFO bai 
+		ON bai.AUTHORITY_ID = bui.AUTHORITY_ID
+		WHERE bui.USER_ID = #{user_id};
+	</select>
+	
+	<insert id="insertUserInfo" parameterType="hashmap">
+		INSERT INTO backoffice.BO_USER_INFO
+		(USER_ID, USER_NAME, USER_PWD, AUTHORITY_ID, EMAIL, LAST_LOGIN_IP, LAST_LOGIN_TIME, IS_ENABLE, CREATE_TIME)
+		VALUES(#{user_id}, #{user_name}, SHA2(#{user_pwd}, 256), #{authority_id}, #{email}, #{last_login_ip}, #{last_login_time}, #{is_enable}, now());
+	</insert>
+	
+	<select id="selectMenuInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT bmi.MENU_CD, bmi.MENU_NAME, 
+		COALESCE(bmi.MENU_URL, '') as MENU_URL, 
+		COALESCE(bmi.MENU_ICON, '') as MENU_ICON, 
+		bsmi.SUB_MENU_CD, bsmi.SUB_MENU_NAME, 
+		COALESCE(bsmi.SUB_MENU_URL, '') AS SUB_MENU_URL, 
+		COALESCE(bsmi.SUB_MENU_ICON, '') AS SUB_MENU_ICON, bsmi.DISPLAY_ORDER,
+		bma.AUTHORITY_ID, bma.AUTHORITY, bmi.IS_ENABLE
+		FROM BO_MENU_INFO bmi
+		INNER JOIN BO_SUB_MENU_INFO bsmi 
+		ON bmi.MENU_CD = bsmi.MENU_CD 
+		INNER JOIN BO_MENU_AUTHORITY bma 
+		ON bsmi.SUB_MENU_CD  = bma.SUB_MENU_CD 
+		WHERE bma.AUTHORITY_ID = #{authority_id} 
+		<if test="is_all == null">
+		AND bmi.IS_ENABLE = 1 AND bma.AUTHORITY != 'N'
+		</if>
+		ORDER BY bmi.DISPLAY_ORDER, bsmi.DISPLAY_ORDER 
+	</select>
+	
+	<insert id="insertUserAccessInfo" parameterType="hashmap">
+		INSERT INTO backoffice.BO_USER_ACCESS_INFO
+		(USER_CD, MENU, ACTION_TYPE, IS_SUCCESS, ACCESS_IP, ACCESS_TIME)
+		VALUES(#{user_cd}, #{menu}, #{action_type}, #{is_success}, #{access_ip}, CURRENT_TIMESTAMP);
+	</insert>
+	
+	<update id="updateLastLoginInfo" parameterType="hashmap">
+		UPDATE BO_USER_INFO SET LAST_LOGIN_IP = #{last_login_ip}, LAST_LOGIN_TIME = now() WHERE USER_CD = #{user_cd};
+	</update>
+</mapper>

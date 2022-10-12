@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pocketmemory.com.data.mapper.UserManagementMapper">
+	
+	<select id="selectUsersInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT bui.USER_CD, bui.USER_ID, bui.USER_NAME, bui.EMAIL, bui.LAST_LOGIN_TIME, bui.LAST_LOGIN_IP, bui.IS_ENABLE,
+		bui.CREATE_TIME, bui.AUTHORITY_ID, bai.AUTHORITY_NAME FROM BO_USER_INFO bui 
+		INNER JOIN BO_AUTHORITY_INFO bai 
+		ON bai.AUTHORITY_ID = bui.AUTHORITY_ID
+		WHERE bui.AUTHORITY_ID >= #{authority_id};
+	</select>
+	
+	<update id="updateUserInfo" parameterType="hashmap">
+		UPDATE BO_USER_INFO SET 
+		USER_ID=#{user_id}, USER_NAME=#{user_name}, AUTHORITY_ID=#{authority_id}, EMAIL=#{email}, IS_ENABLE=#{is_enable}, UPDATE_TIME= now()
+		<if test="user_pwd != null">
+			, USER_PWD=SHA2(#{user_pwd}, 256)
+		</if>
+		WHERE USER_CD =  #{user_cd};
+	</update>
+	
+	<delete id="deleteUserInfo" parameterType="hashmap">
+		DELETE FROM BO_USER_INFO WHERE USER_CD = #{user_cd};
+	</delete>
+	
+	<select id="selectAuthorityInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT bai.* FROM BO_AUTHORITY_INFO bai ORDER BY authority_id;
+	</select>
+
+	<select id="checkIDValidation" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT bui.USER_CD  FROM BO_USER_INFO bui
+		WHERE bui.USER_ID = #{user_id}
+		union
+		SELECT buri.USER_REQ_CD AS USER_CD FROM BO_USER_REQ_INFO buri 
+		WHERE buri.USER_REQ_ID = #{user_id}
+	</select>
+	
+	<select id="selectReqUserInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT USER_REQ_CD, USER_REQ_ID, USER_REQ_NAME, EMAIL, CREATE_TIME FROM BO_USER_REQ_INFO;
+	</select>
+
+	<insert id="insertReqUserInfo" parameterType="hashmap">
+		INSERT INTO BO_USER_REQ_INFO
+		(USER_REQ_ID, USER_REQ_NAME, USER_REQ_PWD, EMAIL, CREATE_TIME)
+		VALUES(#{user_id}, #{user_name}, SHA2(#{user_pwd}, 256), #{email}, now());
+	</insert>
+
+	<insert id="insertReqUsertoUserInfo" parameterType="hashmap">
+		INSERT INTO backoffice.BO_USER_INFO
+		(USER_ID, USER_NAME, USER_PWD, AUTHORITY_ID, EMAIL, LAST_LOGIN_IP, LAST_LOGIN_TIME, IS_ENABLE, CREATE_TIME, UPDATE_TIME)
+		SELECT USER_REQ_ID, USER_REQ_NAME, USER_REQ_PWD, #{authority_id} AS AUTHORITY_ID, EMAIL, NULL, NULL, #{is_enable} AS IS_ENABLE, NOW(), NULL FROM BO_USER_REQ_INFO
+		WHERE USER_REQ_CD = #{user_req_cd};
+	</insert>
+
+	<delete id="deleteReqUserInfo" parameterType="hashmap">
+		DELETE FROM BO_USER_REQ_INFO WHERE USER_REQ_CD = #{user_req_cd};
+	</delete>
+	
+	<select id="selectUserAccessInfo" parameterType="hashmap" resultType="org.apache.commons.collections.map.CaseInsensitiveMap">
+		SELECT buai.USER_CD, userInfo.USER_ID, userInfo.AUTHORITY_NAME,
+		CASE WHEN bsmi.SUB_MENU_NAME IS NOT NULL THEN bsmi.SUB_MENU_NAME ELSE buai.MENU END AS MENU,
+		buai.ACTION_TYPE, buai.IS_SUCCESS, buai.ACCESS_IP, buai.ACCESS_TIME 
+		FROM BO_USER_ACCESS_INFO buai 
+		LEFT OUTER JOIN (
+			SELECT bui.USER_CD, bui.USER_ID, bui.AUTHORITY_ID, bai.AUTHORITY_NAME FROM BO_USER_INFO bui 
+			INNER JOIN BO_AUTHORITY_INFO bai 
+			ON bai.AUTHORITY_ID = bui.AUTHORITY_ID 
+		) userInfo
+		ON userInfo.USER_CD = buai.USER_CD
+		LEFT OUTER JOIN BO_SUB_MENU_INFO bsmi 
+		ON bsmi.SUB_MENU_COMPONENT = buai.MENU 
+		ORDER BY buai.ACCESS_TIME desc;
+	</select>
+</mapper>
